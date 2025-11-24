@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtb-bid-service
+  labels:
+    app: rtb-bid-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rtb-bid-service
+  template:
+    metadata:
+      labels:
+        app: rtb-bid-service
+    spec:
+      containers:
+      - name: rtb-server
+        image: <YOUR_ECR_REPO>/rtb-server:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtb-bid-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: rtb-bid-service
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
