@@ -2,7 +2,7 @@
 set -e
 
 CLUSTER_NAME="rtb-cluster"
-REGION="us-east-1"
+REGION="ap-southeast-1"
 STACK_NAME="rtb-eks-stack"
 ECR_REPO_NAME="rtb-server"
 

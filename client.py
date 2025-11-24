@@ -8,7 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
 
-SERVER_URL = "http://localhost:8080/bid"
+SERVER_URL1 = "http://rtb-alb-798424449.ap-southeast-1.elb.amazonaws.com/bid"
+SERVER_URL2 = "http://a6f22737f00714a1d8cab9ada92c8282-925760715.ap-southeast-1.elb.amazonaws.com:8080/bid"
+SERVER_URL = "https://rtb-gw-66ozchxgtp93wu0mchrgmui73.459833349461.gateway.rtbfabric.ap-southeast-1.amazonaws.com/link/link-ehzyuuq2tyo5nlamu1gkk463o/bid"
 
 def generate_bid_request():
     os_list = ["iOS", "Android", "Web"]
@@ -113,8 +115,10 @@ def send_request():
     try:
         bid_request = generate_bid_request()
         response = requests.post(SERVER_URL, json=bid_request, timeout=2)
+        print(f"[{datetime.now()}] Status: {response.status_code}, Response: {response.text}")
         return response.status_code
     except Exception as e:
+        print(f"[{datetime.now()}] Error: {e}")
         return None
 
 def run_client(concurrency, duration):

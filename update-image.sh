@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REGION="us-east-1"
+REGION="ap-southeast-1"
 STACK_NAME="rtb-asg-stack"
 
 echo "=== Updating RTB Docker Image ==="

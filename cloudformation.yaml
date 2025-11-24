@@ -31,7 +31,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnet:
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -40,7 +40,18 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${ClusterName}-public-subnet
+          Value: !Sub ${ClusterName}-public-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterName}-public-subnet-2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -58,10 +69,16 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  SubnetRouteTableAssociation:
+  SubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
   SecurityGroup:
@@ -117,13 +134,14 @@ Resources:
     Type: AWS::EKS::Cluster
     Properties:
       Name: !Ref ClusterName
-      Version: '1.31'
+      Version: '1.33'
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref SecurityGroup
         SubnetIds:
-          - !Ref PublicSubnet
+          - !Ref PublicSubnet1
+          - !Ref PublicSubnet2
 
   EKSNodeGroup:
     Type: AWS::EKS::Nodegroup
@@ -133,7 +151,8 @@ Resources:
       NodegroupName: !Sub ${ClusterName}-nodegroup
       NodeRole: !GetAtt EKSNodeRole.Arn
       Subnets:
-        - !Ref PublicSubnet
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
       ScalingConfig:
         MinSize: 1
         DesiredSize: 2
@@ -146,9 +165,9 @@ Outputs:
     Value: !Ref VPC
     Description: VPC ID
   
-  SubnetId:
-    Value: !Ref PublicSubnet
-    Description: Public Subnet ID
+  SubnetIds:
+    Value: !Sub '${PublicSubnet1},${PublicSubnet2}'
+    Description: Public Subnet IDs
   
   SecurityGroupId:
     Value: !Ref SecurityGroup

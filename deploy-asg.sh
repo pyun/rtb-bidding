@@ -2,8 +2,8 @@
 set -e
 
 STACK_NAME="rtb-asg-stack"
-REGION="us-east-1"
-KEY_NAME=""  # Optional: Set your EC2 key pair name
+REGION="ap-southeast-1"
+KEY_NAME="firstTestEc2"  # Optional: Set your EC2 key pair name
 
 echo "=== RTB Auto Scaling Group Deployment (Containerized) ==="
 
@@ -24,10 +24,12 @@ else
     --region $REGION
 fi
 
-echo "Waiting for ECR repository creation..."
-sleep 30
+echo "Step 2: Waiting for stack creation (this may take 5-10 minutes)..."
+aws cloudformation wait stack-create-complete \
+  --stack-name $STACK_NAME \
+  --region $REGION
 
-# Step 2: Build and push Docker image
+# Step 3: Build and push Docker image
 echo "Step 2: Building and pushing Docker image..."
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/rtb-server"
@@ -39,12 +41,6 @@ docker tag rtb-server:latest $ECR_URI:latest
 docker push $ECR_URI:latest
 
 echo "Image pushed to: $ECR_URI:latest"
-
-# Step 3: Wait for stack completion
-echo "Step 3: Waiting for stack creation (this may take 5-10 minutes)..."
-aws cloudformation wait stack-create-complete \
-  --stack-name $STACK_NAME \
-  --region $REGION
 
 # Get Load Balancer URL
 echo ""

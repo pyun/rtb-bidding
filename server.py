@@ -8,8 +8,15 @@ app = Flask(__name__)
 
 BID_RATE = 0.7
 
-@app.route('/bid', methods=['POST'])
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "healthy"}), 200
+
+@app.route('/bid', methods=['POST', 'GET'])
 def bid():
+    if request.method == 'GET':
+        return jsonify({"status": "ok"}), 200
+    
     bid_request = request.get_json()
     print(f"[{datetime.now()}] Bid Request: {json.dumps(bid_request, indent=2)}")
     

@@ -32,7 +32,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnet:
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -41,7 +41,18 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: rtb-public-subnet
+          Value: rtb-public-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: rtb-public-subnet-2
 
   RouteTable:
     Type: AWS::EC2::RouteTable
@@ -56,10 +67,16 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  SubnetRouteTableAssociation:
+  SubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref RouteTable
 
   SecurityGroup:
@@ -99,7 +116,8 @@ Resources:
     Properties:
       Name: rtb-alb
       Subnets:
-        - !Ref PublicSubnet
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
       Scheme: internet-facing
@@ -111,7 +129,7 @@ Resources:
       Port: 8080
       Protocol: HTTP
       VpcId: !Ref VPC
-      HealthCheckPath: /bid
+      HealthCheckPath: /health
       HealthCheckProtocol: HTTP
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
@@ -176,10 +194,7 @@ Resources:
             systemctl start docker
             systemctl enable docker
             aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-            docker run -d -p 8080:8080 --restart always ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rtb-server:latest
-
-Conditions:
-  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+            sudo docker run -d -p 8080:8080 --restart always ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rtb-server:latest
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -192,7 +207,8 @@ Conditions:
       MaxSize: 10
       DesiredCapacity: 3
       VPCZoneIdentifier:
-        - !Ref PublicSubnet
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
       TargetGroupARNs:
         - !Ref TargetGroup
       HealthCheckType: ELB
@@ -212,6 +228,9 @@ Conditions:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: 70.0
 
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+
 Outputs:
   LoadBalancerURL:
     Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}/bid'
@@ -224,8 +243,8 @@ Outputs:
   VPCId:
     Value: !Ref VPC
   
-  SubnetId:
-    Value: !Ref PublicSubnet
+  SubnetIds:
+    Value: !Sub '${PublicSubnet1},${PublicSubnet2}'
   
   SecurityGroupId:
     Value: !Ref SecurityGroup
