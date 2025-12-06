@@ -7,11 +7,17 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
+import string
 
-SERVER_URL1 = "http://rtb-alb-798424449.ap-southeast-1.elb.amazonaws.com/bid"
-SERVER_URL2 = "http://a6f22737f00714a1d8cab9ada92c8282-925760715.ap-southeast-1.elb.amazonaws.com:8080/bid"
-SERVER_URL3 = "https://rtb-gw-66ozchxgtp93wu0mchrgmui73.459833349461.gateway.rtbfabric.ap-southeast-1.amazonaws.com/link/link-ehzyuuq2tyo5nlamu1gkk463o/bid"
-SERVER_URL = "https://rtb-gw-66ozchxgtp93wu0mchrgmui73.459833349461.gateway.rtbfabric.ap-southeast-1.amazonaws.com/link/link-drmgjteleqrj95jq6gty0ogm2/bid"
+# 默认request只有2666，通过page url调整包大小
+EXTRA_INFO = ''.join(random.choices(string.ascii_letters + string.digits, k=400))
+no_rtb_body = ''.join(random.choices(string.ascii_letters + string.digits, k=3048))
+
+SERVER_URL_BID = "https://link-28nzwzeflwjrs6q3e9p7ezwle.297126936078.gateway.rtbfabric.us-east-1.amazonaws.com/bid"
+SERVER_URL_NORTB = "https://link-28nzwzeflwjrs6q3e9p7ezwle.297126936078.gateway.rtbfabric.us-east-1.amazonaws.com/no_rtb"
+SERVER_URL_NLB = "http://k8s-default-rtbbidse-f67e0ab541-e21ea20e6b018e25.elb.us-east-1.amazonaws.com:8080/bid"
+
+SERVER_URL = SERVER_URL_NORTB
 
 def generate_bid_request():
     os_list = ["iOS", "Android", "Web"]
@@ -67,7 +73,7 @@ def generate_bid_request():
         "site": {
             "cat": ["1", "33", "544", "765", "1222", "1124", "789", "995", "133", "45", "76", "91"],
             "domain": "example.com",
-            "page": "http://easy.example.com/easy?cu=13824;cre=mu;target=_blank",
+            "page": "http://easy.example.com/easy?cu=13824;cre=mu;target=_blank" + EXTRA_INFO,
             "publisher": {
                 "domain": "my.site.com",
                 "id": publisher_id,
@@ -111,10 +117,18 @@ def generate_bid_request():
             "yob": random.randint(1960, 2000)
         }
     }
+def generate_no_rtb_request():
+    return {
+        "request": no_rtb_body
+        }
+
+def generate_request():
+    # return generate_bid_request()
+    return generate_no_rtb_request()
 
 def send_request():
     try:
-        bid_request = generate_bid_request()
+        bid_request = generate_request()
         response = requests.post(SERVER_URL, json=bid_request, timeout=2)
         print(f"[{datetime.now()}] Status: {response.status_code}, Response: {response.text}")
         return response.status_code
